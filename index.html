@@ -253,6 +253,17 @@
       border-color: #1a5a78;
     }
 
+    .btn-warning {
+      background: #f39c12;
+      color: white;
+      box-shadow: 0 6px 14px rgba(243, 156, 18, 0.25);
+    }
+
+    .btn-warning:hover {
+      background: #d68910;
+      transform: translateY(-2px);
+    }
+
     .table-responsive {
       overflow-x: auto;
       border-radius: 20px;
@@ -332,6 +343,17 @@
       color: #6f8fa5;
       margin-top: 0.3rem;
       padding-right: 0.5rem;
+    }
+
+    .save-indicator {
+      background: #27ae60;
+      color: white;
+      padding: 0.3rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     @media (max-width: 480px) {
@@ -415,7 +437,6 @@
       padding-top: 6px;
     }
 
-    /* Pagination untuk KTP - 6 per halaman (2x3) */
     .ktp-page-break {
       page-break-before: always;
       padding-top: 10px;
@@ -437,9 +458,16 @@
   <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
     <div>
       <h1><i class="fas fa-id-card"></i> Data Karyawan</h1>
-      <div class="subhead"><i class="fas fa-upload" style="margin-right: 8px;"></i> Upload KTP & Ekspor PDF · <strong>65 Karyawan</strong></div>
+      <div class="subhead">
+        <i class="fas fa-upload" style="margin-right: 8px;"></i> 
+        Upload KTP & Ekspor PDF · <strong id="totalDisplay">0 Karyawan</strong>
+        <span id="saveIndicator" class="save-indicator" style="margin-left: 15px; display: none;">
+          <i class="fas fa-check-circle"></i> Tersimpan
+        </span>
+      </div>
     </div>
-    <div style="display: flex; gap: 0.6rem; margin-bottom: 0.5rem;">
+    <div style="display: flex; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+      <button class="btn btn-warning" id="saveDataBtn"><i class="fas fa-save"></i> Simpan Data</button>
       <button class="btn btn-success" id="exportPdfBtn"><i class="fas fa-file-pdf"></i> Ekspor PDF</button>
     </div>
   </div>
@@ -494,12 +522,20 @@
         <div style="border-top: 1px dashed #c7dae9; padding-top: 0.8rem; color: #2c5770; font-size: 0.9rem;">
           <i class="fas fa-info-circle"></i> Klik <i class="fas fa-trash-alt" style="color: #b94a6b;"></i> pada tabel untuk hapus.
         </div>
+        <div style="font-size: 0.85rem; color: #6f8fa5; margin-top: 0.3rem;">
+          <i class="fas fa-database"></i> Data tersimpan otomatis di browser
+        </div>
       </div>
     </div>
   </div>
 
   <div class="card" style="margin-top: 0.2rem;">
-    <div class="card-title"><i class="fas fa-table"></i> Daftar Karyawan (65 Data)</div>
+    <div class="card-title">
+      <i class="fas fa-table"></i> Daftar Karyawan 
+      <span style="font-size: 0.8rem; font-weight: normal; color: #6f8fa5; margin-left: 10px;">
+        (klik <i class="fas fa-trash-alt" style="color: #b94a6b;"></i> untuk hapus)
+      </span>
+    </div>
     <div class="table-responsive" id="tableContainer">
       <table id="employeeTable">
         <thead>
@@ -518,6 +554,7 @@
     <div class="scroll-indicator"><i class="fas fa-arrow-up"></i> Scroll untuk melihat semua data</div>
     <div class="footer-actions">
       <button class="btn btn-outline" id="clearAllBtn"><i class="fas fa-trash-alt"></i> Hapus Semua</button>
+      <button class="btn btn-warning" id="resetDataBtn"><i class="fas fa-undo"></i> Reset ke Default (65)</button>
     </div>
   </div>
 </div>
@@ -642,7 +679,7 @@
   <!-- Halaman 1: Data Karyawan -->
   <div>
     <div class="pdf-title"><i class="fas fa-id-card"></i> Laporan Data Karyawan</div>
-    <div class="pdf-sub">Total 65 Karyawan</div>
+    <div class="pdf-sub">Total <span id="pdfTotalCount">0</span> Karyawan</div>
     <div id="pdfTableWrapper"></div>
     <div class="pdf-footer">Dicetak: <span id="pdfDate"></span></div>
   </div>
@@ -659,6 +696,8 @@
   (function() {
     "use strict";
 
+    const STORAGE_KEY = 'employeeData65';
+
     const form = document.getElementById('employeeForm');
     const namaInput = document.getElementById('nama');
     const posisiInput = document.getElementById('posisi');
@@ -667,15 +706,70 @@
     const ktpPreview = document.getElementById('ktpPreview');
     const tableBody = document.getElementById('tableBody');
     const totalKaryawanSpan = document.getElementById('totalKaryawan');
+    const totalDisplay = document.getElementById('totalDisplay');
     const ktpCountSpan = document.getElementById('ktpCount');
     const exportBtn = document.getElementById('exportPdfBtn');
     const clearAllBtn = document.getElementById('clearAllBtn');
+    const saveDataBtn = document.getElementById('saveDataBtn');
+    const resetDataBtn = document.getElementById('resetDataBtn');
+    const saveIndicator = document.getElementById('saveIndicator');
 
     let employees = [];
     let idCounter = 1;
 
+    // ========== LOCAL STORAGE ==========
+    function saveToStorage() {
+      try {
+        const dataToSave = employees.map(emp => ({
+          id: emp.id,
+          nama: emp.nama,
+          posisi: emp.posisi,
+          departemen: emp.departemen,
+          ktpDataUrl: emp.ktpDataUrl || ''
+        }));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+        // Tampilkan indikator tersimpan
+        saveIndicator.style.display = 'inline-flex';
+        setTimeout(() => {
+          saveIndicator.style.opacity = '0.7';
+        }, 100);
+        setTimeout(() => {
+          saveIndicator.style.display = 'none';
+          saveIndicator.style.opacity = '1';
+        }, 3000);
+      } catch (e) {
+        console.warn('Gagal menyimpan ke localStorage:', e);
+      }
+    }
+
+    function loadFromStorage() {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            employees = parsed;
+            // Update idCounter
+            let maxId = 0;
+            employees.forEach(emp => {
+              if (emp.id > maxId) maxId = emp.id;
+            });
+            idCounter = maxId + 1;
+            renderTable();
+            return true;
+          }
+        }
+        return false;
+      } catch (e) {
+        console.warn('Gagal memuat dari localStorage:', e);
+        return false;
+      }
+    }
+
+    // ========== FUNGSI UTAMA ==========
     function updateStats() {
       totalKaryawanSpan.textContent = employees.length;
+      totalDisplay.textContent = employees.length + ' Karyawan';
       const withKtp = employees.filter(e => e.ktpDataUrl && e.ktpDataUrl.length > 0);
       ktpCountSpan.textContent = withKtp.length;
     }
@@ -723,6 +817,7 @@
           if (confirm('Hapus data karyawan ini?')) {
             employees = employees.filter(emp => emp.id !== id);
             renderTable();
+            saveToStorage();
           }
         });
       });
@@ -738,10 +833,11 @@
       };
       employees.push(newEmp);
       renderTable();
+      saveToStorage();
     }
 
-    // Generate 65 data karyawan otomatis
-    function generateDummyData() {
+    // ========== GENERATE DATA DEFAULT ==========
+    function generateDefaultData() {
       const names = [
         'Andi Pratama', 'Siti Rahayu', 'Budi Santoso', 'Dewi Lestari', 'Eko Saputra',
         'Fitriani Nur', 'Gilang Ramadhan', 'Hani Fitriah', 'Irfan Hakim', 'Joko Widodo',
@@ -771,20 +867,30 @@
         'Security/Keamanan', 'Keuangan', 'Maintenance', 'Bar (Barista)'
       ];
 
-      // Generate 65 data, 50% memiliki KTP dummy
+      employees = [];
+      idCounter = 1;
+
       for (let i = 0; i < 65 && i < names.length; i++) {
         const pos = positions[i % positions.length];
         const dept = departments[i % departments.length];
         let ktp = '';
-        // 50% data memiliki KTP dummy (agar banyak yang terlihat)
+        // 50% data memiliki KTP dummy
         if (i % 2 === 0) {
-          // Dummy KTP dengan teks "KTP" sebagai placeholder
           ktp = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDgwIDUwIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iNTAiIGZpbGw9IiNlZGVkZWQiLz48dGV4dCB4PSIxMCIgeT0iMjUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCI+Szx0c3BhbiB4PSIyMCIgeT0iMjUiPlRQPC90c3Bhbj48L3RleHQ+PC9zdmc+';
         }
-        addEmployee(names[i], pos, dept, ktp);
+        employees.push({
+          id: idCounter++,
+          nama: names[i],
+          posisi: pos,
+          departemen: dept,
+          ktpDataUrl: ktp
+        });
       }
+      renderTable();
+      saveToStorage();
     }
 
+    // ========== EVENT LISTENERS ==========
     // Form submit
     form.addEventListener('submit', function(e) {
       e.preventDefault();
@@ -821,6 +927,7 @@
       }
     });
 
+    // Preview KTP
     ktpFileInput.addEventListener('change', function() {
       const file = this.files[0];
       if (file) {
@@ -836,6 +943,7 @@
       }
     });
 
+    // Clear all
     clearAllBtn.addEventListener('click', function() {
       if (employees.length === 0) {
         alert('Tidak ada data untuk dihapus.');
@@ -844,6 +952,7 @@
       if (confirm('Hapus SEMUA data karyawan?')) {
         employees = [];
         renderTable();
+        saveToStorage();
         ktpPreview.style.display = 'none';
         ktpPreview.src = '#';
         ktpFileInput.value = '';
@@ -851,7 +960,24 @@
       }
     });
 
-    // Fungsi untuk membagi array menjadi chunk (6 per halaman)
+    // Reset ke default 65 data
+    resetDataBtn.addEventListener('click', function() {
+      if (employees.length > 0) {
+        if (!confirm('Reset akan menghapus data saat ini dan mengembalikan ke 65 data default. Lanjutkan?')) {
+          return;
+        }
+      }
+      generateDefaultData();
+      alert('Data telah direset ke 65 karyawan default.');
+    });
+
+    // Save data manually
+    saveDataBtn.addEventListener('click', function() {
+      saveToStorage();
+      alert('Data berhasil disimpan!');
+    });
+
+    // ========== CHUNK ARRAY UNTUK PDF ==========
     function chunkArray(array, size) {
       const chunks = [];
       for (let i = 0; i < array.length; i += size) {
@@ -860,7 +986,7 @@
       return chunks;
     }
 
-    // Ekspor PDF
+    // ========== EKSPOR PDF ==========
     exportBtn.addEventListener('click', function() {
       if (employees.length === 0) {
         alert('Tidak ada data karyawan untuk diekspor.');
@@ -870,7 +996,10 @@
       const pdfContainer = document.getElementById('pdf-export-content');
       const tableWrapper = document.getElementById('pdfTableWrapper');
       const ktpWrapper = document.getElementById('pdfKtpWrapper');
+      const pdfTotalCount = document.getElementById('pdfTotalCount');
       
+      pdfTotalCount.textContent = employees.length;
+
       // --- Halaman 1: Data Karyawan (Tabel) ---
       let tableHtml = `<table>
         <thead><tr>
@@ -902,7 +1031,6 @@
       if (employeesWithKtp.length === 0) {
         ktpWrapper.innerHTML = `<div class="pdf-ktp-empty"><i class="fas fa-image"></i> Belum ada foto KTP yang diupload</div>`;
       } else {
-        // Bagi menjadi chunk 6 per halaman
         const chunks = chunkArray(employeesWithKtp, 6);
         let allKtpHtml = '';
         
@@ -911,7 +1039,6 @@
             allKtpHtml += `<div class="ktp-page-break"></div>`;
           }
           
-          // Grid untuk halaman ini (2 kolom x 3 baris)
           allKtpHtml += `<div class="pdf-ktp-grid">`;
           
           chunk.forEach((emp) => {
@@ -935,12 +1062,11 @@
       document.getElementById('pdfDate').textContent = dateStr;
       document.getElementById('pdfDate2').textContent = dateStr;
 
-      // Tampilkan konten PDF
       pdfContainer.style.display = 'block';
       
       const opt = {
         margin:        [0.7, 0.7, 0.7, 0.7],
-        filename:     `Laporan_Karyawan_65_${new Date().toISOString().slice(0,10)}.pdf`,
+        filename:     `Laporan_Karyawan_${employees.length}_${new Date().toISOString().slice(0,10)}.pdf`,
         image:        { type: 'jpeg', quality: 0.95 },
         html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
@@ -955,8 +1081,23 @@
       });
     });
 
-    // Inisialisasi dengan 65 data
-    generateDummyData();
+    // ========== INISIALISASI ==========
+    // Coba load dari localStorage, jika tidak ada maka generate default
+    const hasLoaded = loadFromStorage();
+    if (!hasLoaded) {
+      generateDefaultData();
+    }
+
+    // Auto-save setiap kali ada perubahan (sudah di handle di addEmployee dan delete)
+    // Tambahkan auto-save periodik setiap 30 detik
+    setInterval(function() {
+      if (employees.length > 0) {
+        saveToStorage();
+      }
+    }, 30000);
+
+    console.log('✅ Aplikasi siap! Total karyawan:', employees.length);
+    console.log('💾 Data tersimpan di LocalStorage dengan key:', STORAGE_KEY);
 
   })();
 </script>
