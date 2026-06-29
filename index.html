@@ -339,42 +339,113 @@
       h1 { font-size: 1.6rem; }
     }
 
-    /* Style untuk PDF - Halaman KTP */
-    .pdf-ktp-page {
-      page-break-before: always;
-      padding: 20px 0;
+    /* ===== STYLE KHUSUS UNTUK PDF ===== */
+    #pdf-export-content { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      padding: 15px; 
+      background: white;
+      max-width: 100%;
     }
 
+    /* Halaman 1: Data Karyawan */
+    .pdf-data-page table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 15px;
+      font-size: 10px;
+    }
+    .pdf-data-page th, .pdf-data-page td { 
+      border: 1px solid #aaa; 
+      padding: 5px 8px; 
+      text-align: left; 
+    }
+    .pdf-data-page th { 
+      background: #e6f0f8; 
+      font-weight: 600;
+    }
+    .pdf-title { 
+      font-size: 1.4rem; 
+      font-weight: 600; 
+      margin-bottom: 0.2rem; 
+      color: #0b2b3c; 
+    }
+    .pdf-sub { 
+      color: #2c5770; 
+      margin-bottom: 1rem; 
+      border-bottom: 2px solid #2a7faa; 
+      padding-bottom: 0.3rem; 
+      font-size: 0.9rem;
+    }
+    .pdf-footer {
+      margin-top: 0.8rem;
+      color: #2c5770;
+      font-size: 0.7rem;
+      text-align: right;
+      border-top: 1px solid #ddd;
+      padding-top: 8px;
+    }
+
+    /* Halaman KTP - Layout 2 kolom x 4 baris = 8 KTP per halaman */
+    .pdf-ktp-page {
+      page-break-before: always;
+      padding-top: 10px;
+    }
+    .pdf-ktp-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #0b2b3c;
+      border-bottom: 2px solid #2a7faa;
+      padding-bottom: 6px;
+    }
+
+    /* GRID KTP: 2 KOLOM, 4 BARIS = 8 ITEM PER HALAMAN */
     .pdf-ktp-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 20px;
-      justify-items: center;
-      padding: 10px;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto auto auto;
+      gap: 12px 20px;
+      padding: 5px 0;
+      width: 100%;
     }
 
     .pdf-ktp-item {
       text-align: center;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px;
-      background: #f9f9f9;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 10px 8px 8px 8px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
     }
 
+    /* Ukuran KTP FULL: 8.8cm x 5.8cm (tidak terpotong) */
     .pdf-ktp-item img {
-      width: 8.8cm;
+      width: 100%;
+      max-width: 8.8cm;
       height: 5.8cm;
-      object-fit: cover;
-      border: 1px solid #ccc;
+      object-fit: contain;
+      /* object-fit: contain agar gambar full tidak terpotong */
+      border: 1px solid #bbb;
       border-radius: 4px;
       background: white;
+      display: block;
     }
 
     .pdf-ktp-item .ktp-name {
       margin-top: 6px;
       font-weight: 600;
-      font-size: 11px;
-      color: #333;
+      font-size: 10px;
+      color: #222;
+      word-wrap: break-word;
+      max-width: 100%;
+    }
+    .pdf-ktp-item .ktp-dept {
+      font-size: 9px;
+      color: #555;
+      margin-top: 1px;
     }
 
     .pdf-ktp-empty {
@@ -382,15 +453,22 @@
       padding: 30px;
       color: #999;
       font-style: italic;
+      grid-column: 1 / -1;
     }
 
-    .pdf-ktp-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 15px;
-      color: #0b2b3c;
-      border-bottom: 2px solid #2a7faa;
-      padding-bottom: 8px;
+    /* Untuk halaman KTP berikutnya (jika lebih dari 8) */
+    .ktp-page-break {
+      page-break-before: always;
+    }
+
+    /* Print optimization */
+    @media print {
+      .pdf-ktp-grid {
+        page-break-inside: avoid;
+      }
+      .pdf-ktp-item {
+        page-break-inside: avoid;
+      }
     }
   </style>
 </head>
@@ -484,123 +562,20 @@
   </div>
 </div>
 
-<!-- PDF Export Content -->
+<!-- ==================== PDF EXPORT CONTENT ==================== -->
 <div id="pdf-export-content">
-  <style>
-    #pdf-export-content { 
-      font-family: 'Segoe UI', sans-serif; 
-      padding: 20px; 
-      background: white;
-    }
-    #pdf-export-content table { 
-      width: 100%; 
-      border-collapse: collapse; 
-      margin-bottom: 20px;
-    }
-    #pdf-export-content th, #pdf-export-content td { 
-      border: 1px solid #aaa; 
-      padding: 8px 10px; 
-      text-align: left; 
-      font-size: 11px;
-    }
-    #pdf-export-content th { 
-      background: #e6f0f8; 
-      font-weight: 600;
-    }
-    .pdf-title { 
-      font-size: 1.8rem; 
-      font-weight: 600; 
-      margin-bottom: 0.2rem; 
-      color: #0b2b3c; 
-    }
-    .pdf-sub { 
-      color: #2c5770; 
-      margin-bottom: 1.5rem; 
-      border-bottom: 2px solid #2a7faa; 
-      padding-bottom: 0.3rem; 
-    }
-    .pdf-ktp-page {
-      page-break-before: always;
-      padding-top: 20px;
-    }
-    .pdf-ktp-title {
-      font-size: 1.4rem;
-      font-weight: 600;
-      margin-bottom: 20px;
-      color: #0b2b3c;
-      border-bottom: 2px solid #2a7faa;
-      padding-bottom: 8px;
-    }
-    .pdf-ktp-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      justify-items: center;
-      padding: 10px 0;
-    }
-    .pdf-ktp-item {
-      text-align: center;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 12px 8px;
-      background: #f9f9f9;
-      width: 100%;
-      max-width: 200px;
-    }
-    .pdf-ktp-item img {
-      width: 8.8cm;
-      height: 5.8cm;
-      object-fit: cover;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      background: white;
-      display: block;
-      margin: 0 auto;
-    }
-    .pdf-ktp-item .ktp-name {
-      margin-top: 8px;
-      font-weight: 600;
-      font-size: 11px;
-      color: #333;
-      word-wrap: break-word;
-    }
-    .pdf-ktp-item .ktp-dept {
-      font-size: 10px;
-      color: #666;
-      margin-top: 2px;
-    }
-    .pdf-ktp-empty {
-      text-align: center;
-      padding: 30px;
-      color: #999;
-      font-style: italic;
-      grid-column: 1 / -1;
-    }
-    .pdf-footer {
-      margin-top: 1.2rem;
-      color: #2c5770;
-      font-size: 0.8rem;
-      text-align: right;
-      border-top: 1px solid #ddd;
-      padding-top: 10px;
-    }
-    @media print {
-      .pdf-ktp-grid {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-  </style>
-  
-  <!-- Halaman 1: Data Karyawan -->
-  <div class="pdf-title"><i class="fas fa-id-card"></i> Laporan Data Karyawan</div>
-  <div class="pdf-sub">Total 65 Karyawan</div>
-  <div id="pdfTableWrapper"></div>
-  <div class="pdf-footer">Dicetak: <span id="pdfDate"></span></div>
+  <!-- Halaman 1: Data Karyawan (Tabel) -->
+  <div class="pdf-data-page">
+    <div class="pdf-title"><i class="fas fa-id-card"></i> Laporan Data Karyawan</div>
+    <div class="pdf-sub">Total 65 Karyawan</div>
+    <div id="pdfTableWrapper"></div>
+    <div class="pdf-footer">Dicetak: <span id="pdfDate"></span></div>
+  </div>
 
-  <!-- Halaman 2: Foto KTP -->
-  <div class="pdf-ktp-page">
+  <!-- Halaman 2 dst: Foto KTP (2 kolom x 4 baris) -->
+  <div class="pdf-ktp-page" id="ktpPageContainer">
     <div class="pdf-ktp-title"><i class="fas fa-image"></i> Dokumentasi KTP Karyawan</div>
-    <div id="pdfKtpWrapper" class="pdf-ktp-grid"></div>
+    <div id="pdfKtpWrapper"></div>
     <div class="pdf-footer">Dicetak: <span id="pdfDate2"></span></div>
   </div>
 </div>
@@ -724,11 +699,11 @@
       for (let i = 0; i < 65 && i < names.length; i++) {
         const pos = positions[i % positions.length];
         const dept = departments[i % departments.length];
-        // 40% data memiliki KTP dummy (agar banyak yang terlihat)
+        // 50% data memiliki KTP dummy (agar banyak yang terlihat)
         let ktp = '';
-        if (i % 3 === 0 || i % 5 === 0) {
-          // dummy KTP dengan tulisan "KTP" sebagai placeholder
-          ktp = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI1MCIgdmlld0JveD0iMCAwIDgwIDUwIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iNTAiIGZpbGw9IiNlZGVkZWQiLz48dGV4dCB4PSIxMCIgeT0iMjUiIGZvbnQtc2l6ZT0iMTIiIGZvbnQtZmFtaWx5PSJBcmlhbCI+Szx0c3BhbiB4PSIyMCIgeT0iMjUiPlRQPC90c3Bhbj48L3RleHQ+PC9zdmc+';
+        if (i % 2 === 0) {
+          // Dummy KTP dengan teks "KTP" - agar terlihat full ukuran
+          ktp = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4ODAiIGhlaWdodD0iNTgwIiB2aWV3Qm94PSIwIDAgODgwIDU4MCI+PHJlY3Qgd2lkdGg9Ijg4MCIgaGVpZ2h0PSI1ODAiIGZpbGw9IiNlZGVkZWQiLz48cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSI4NjAiIGhlaWdodD0iNTYwIiBmaWxsPSIjZmZmIiBzdHJva2U9IiM5OTkiLz48dGV4dCB4PSIzMDAiIHk9IjI4MCIgZm9udC1zaXplPSI3MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmaWxsPSIjMzMzIj5LVFA8L3RleHQ+PHRleHQgeD0iMjUwIiB5PSIzNjAiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZmlsbD0iIzY2NiI+RE9LVU1FTlQ8L3RleHQ+PC9zdmc+';
         }
         addEmployee(names[i], pos, dept, ktp);
       }
@@ -800,7 +775,7 @@
       }
     });
 
-    // Ekspor PDF dengan 2 halaman
+    // ==================== EKSPOR PDF ====================
     exportBtn.addEventListener('click', function() {
       if (employees.length === 0) {
         alert('Tidak ada data karyawan untuk diekspor.');
@@ -836,14 +811,40 @@
       tableHtml += `</tbody></table>`;
       tableWrapper.innerHTML = tableHtml;
 
-      // --- Halaman 2: Foto KTP (Grid 4 kolom, ukuran 8.8 x 5.8 cm) ---
+      // --- Halaman KTP: 2 kolom x 4 baris = 8 item per halaman ---
       const employeesWithKtp = employees.filter(emp => emp.ktpDataUrl && emp.ktpDataUrl.length > 0);
       
       if (employeesWithKtp.length === 0) {
         ktpWrapper.innerHTML = `<div class="pdf-ktp-empty"><i class="fas fa-image"></i> Belum ada foto KTP yang diupload</div>`;
       } else {
+        // Generate grid dengan 2 kolom, 4 baris = 8 item
         let ktpHtml = '';
+        let count = 0;
+        const perPage = 8; // 2 kolom x 4 baris
+        
+        // Kita akan membuat satu grid untuk semua (html2pdf akan menangani page break)
+        // Tapi kita perlu menambahkan page break setiap 8 item
+        let pageCount = 0;
+        
         employeesWithKtp.forEach((emp, idx) => {
+          // Jika ini item ke-9, 17, 25, dst -> tambahkan page break
+          if (idx > 0 && idx % perPage === 0) {
+            // Tutup grid sebelumnya, buka grid baru dengan page break
+            ktpHtml += `</div>`; // tutup grid sebelumnya
+            ktpHtml += `<div class="pdf-ktp-page ktp-page-break">`;
+            ktpHtml += `<div class="pdf-ktp-title"><i class="fas fa-image"></i> Dokumentasi KTP Karyawan (lanjutan)</div>`;
+            ktpHtml += `<div class="pdf-ktp-grid">`;
+          }
+          
+          // Jika ini item pertama atau setelah page break, buka grid
+          if (idx === 0 || idx % perPage === 0) {
+            if (idx > 0) {
+              // sudah ditangani di atas
+            } else {
+              // grid pertama sudah ada di HTML awal
+            }
+          }
+          
           ktpHtml += `
             <div class="pdf-ktp-item">
               <img src="${emp.ktpDataUrl}" alt="KTP ${escHtml(emp.nama)}">
@@ -852,7 +853,16 @@
             </div>
           `;
         });
-        ktpWrapper.innerHTML = ktpHtml;
+        
+        // Tutup grid terakhir
+        ktpHtml += `</div>`;
+        
+        // Bungkus dengan container
+        ktpWrapper.innerHTML = `
+          <div class="pdf-ktp-grid">
+            ${ktpHtml}
+          </div>
+        `;
       }
 
       // Set tanggal
@@ -864,9 +874,9 @@
       pdfContainer.style.display = 'block';
       
       const opt = {
-        margin:        [0.8, 0.8, 0.8, 0.8],
+        margin:        [0.6, 0.6, 0.6, 0.6],
         filename:     `Laporan_Karyawan_65_${new Date().toISOString().slice(0,10)}.pdf`,
-        image:        { type: 'jpeg', quality: 0.95 },
+        image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, letterRendering: true, useCORS: true, logging: false },
         jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
       };
